@@ -1,0 +1,32 @@
+# CockroachDB Vector Similarity Search Graph Implementation Plan
+
+Build an interactive 2D node-graph visualization using `@xyflow/react` (React Flow v12) to physically demonstrate CockroachDB `pgvector` cosine similarity search to judges and users.
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **React Flow Integration**: Built using `@xyflow/react`. Features custom dark Cyberpunk nodes, animated glowing edges, vector score badges, and a live CockroachDB `pgvector` query inspector panel.
+> - **Interactive Trigger**: The graph automatically activates and highlights when the agent reaches the `VECTOR_SEARCH` phase, and can also be opened/toggled at any time via a dedicated "CockroachDB Vector Memory Index" tab/modal.
+
+## Proposed Changes
+
+### Component Creation: `src/components/VectorSimilarityGraph.tsx`
+- **Center Node**: "Current Alert Context Vector" (Glowing Red/Amber node representing incoming query embedding `q ∈ ℝ¹⁵³⁶`).
+- **Surrounding Nodes**: CockroachDB stored incident vector runbooks.
+- **Top 3 Glowing Connections**:
+  - Top Match: `0.962` similarity (Glowing Emerald connection line) -> `AUTH_SERVICE_CONNECTION_LEAK`
+  - 2nd Match: `0.894` similarity (Glowing Cyan connection line) -> `POSTGRES_POOL_EXHAUSTION`
+  - 3rd Match: `0.831` similarity (Glowing Purple connection line) -> `REDIS_CONNECTION_TIMEOUTS`
+  - Irrelevant nodes (similarity < 0.50): Faded gray nodes demonstrating vector space filtering.
+- **CockroachDB Query Inspector**: Displays live SQL query representation (`SELECT title, 1 - (embedding <=> $1) AS similarity FROM runbooks ORDER BY embedding <=> $1 LIMIT 3;`).
+
+### Integration into Dashboard (`src/App.tsx`)
+- Add a floating / expandable "CockroachDB Vector Space Inspector" panel or tab in the SRE dashboard.
+- Sync state so when `phase === 'VECTOR_SEARCH'`, the vector graph animates its similarity beam connections in real time.
+
+## Verification Plan
+
+### Manual Verification
+- Compile with `cmd /c npm run lint` (`tsc --noEmit`).
+- Build frontend with `cmd /c npm run build`.
+- Trigger `Process Telemetry Alert` or `search_vector_memory` in the dashboard and verify the 2D network graph renders center alert node connected to past incident nodes with glowing similarity score edges.

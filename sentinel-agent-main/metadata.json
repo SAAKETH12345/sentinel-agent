@@ -1,0 +1,6 @@
+{
+  "name": "SentinelAgent Dashboard",
+  "description": "Level 3 Autonomous SRE dashboard with telemetry, vector search, and self-healing memory capabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

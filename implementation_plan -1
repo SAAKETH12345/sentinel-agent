@@ -1,0 +1,75 @@
+# Implementation Plan - SentinelAgent Python Backend
+
+Build a highly concurrent Python backend for SentinelAgent with FastAPI, Amazon Bedrock (`boto3` + Claude 3.5 Sonnet), and CockroachDB (`psycopg2` vector cosine similarity search).
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **Amazon Bedrock Credentials**: The backend requires valid AWS credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`) with permissions for Bedrock Claude 3.5 Sonnet (`anthropic.claude-3-5-sonnet-20241022-v2:0`). A mock/fallback streaming mode will be included for local development if AWS credentials are not configured.
+> - **CockroachDB Connection**: The database connection string must be provided via `DATABASE_URL` in `.env`. A fallback SQLite/in-memory vector search helper will be provided if CockroachDB is offline during initial boot.
+
+## Open Questions
+
+> [!NOTE]
+> - Are there specific AWS region preferences (e.g. `us-east-1`, `us-west-2`) for Amazon Bedrock invocation?
+> - Should vector embeddings be generated using Amazon Bedrock Titan Text Embeddings (`amazon.titan-embed-text-v2:0`) or passed directly as vector arrays?
+
+## Proposed Changes
+
+### Backend Component (`backend/`)
+
+#### [NEW] [requirements.txt](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/requirements.txt)
+- Dependencies: `fastapi`, `uvicorn[standard]`, `boto3`, `psycopg2-binary`, `python-dotenv`, `pydantic`, `websockets`, `numpy`.
+
+#### [NEW] [config.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/config.py)
+- Configuration module using `python-dotenv` to load environment variables:
+  - `DATABASE_URL`
+  - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+  - `BEDROCK_MODEL_ID` (default: `anthropic.claude-3-5-sonnet-20241022-v2:0`)
+
+#### [NEW] [database.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/database.py)
+- Connection pool setup using `psycopg2.pool.ThreadedConnectionPool` for high concurrency.
+- Schema creation for `runbooks` table (with vector embedding column).
+- Database functions:
+  - `vector_cosine_similarity_search(query_embedding: list[float], top_k: int = 3)`: Performs SQL cosine similarity calculation using CockroachDB / pgvector `<=>` or inner-product array math.
+  - `insert_runbook(title: str, description: str, solution: str, embedding: list[float])`: Adds a new runbook entry to vector store.
+
+#### [NEW] [bedrock_client.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/bedrock_client.py)
+- Integration with Amazon Bedrock via `boto3.client('bedrock-runtime')`.
+- Function `stream_claude_thought_process(alert_text, retrieved_runbooks)` that calls `invoke_model_with_response_stream` or `converse_stream` to stream Claude 3.5 Sonnet's reasoning step-by-step.
+- Generates JSON thought process chunks (`Observation -> Memory Search -> Action`).
+
+#### [NEW] [main.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/main.py)
+- FastAPI application initialization with CORS middleware.
+- WebSocket endpoint `/ws/alert`:
+  - Listens for incoming system alert payloads.
+  - Triggers asynchronous vector similarity search against CockroachDB (`asyncio.to_thread`).
+  - Streams real-time LLM thought process back to WebSocket client.
+- REST endpoints:
+  - `GET /health`
+  - `POST /api/runbooks` (insert new runbook)
+  - `POST /api/search` (test vector search)
+
+#### [NEW] [.env.example](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/.env.example)
+- Sample environment variables file for backend configuration.
+
+---
+
+### Frontend Integration (`src/`)
+
+#### [MODIFY] [App.tsx](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/src/App.tsx)
+- Optional enhancement: Add WebSocket connection handler to connect to `ws://localhost:8000/ws/alert` so live system alerts stream directly into the UI log feed.
+
+## Verification Plan
+
+### Automated Tests
+- Python unit test script `backend/test_backend.py` to verify:
+  1. CockroachDB connection & `vector_cosine_similarity_search` / `insert_runbook` functions.
+  2. Amazon Bedrock client streaming logic.
+  3. WebSocket `/ws/alert` payload delivery & real-time streaming response.
+
+### Manual Verification
+- Start FastAPI dev server: `uvicorn backend.main:app --reload --port 8000`.
+- Connect WebSocket client or test script to `ws://localhost:8000/ws/alert`.
+- Send sample system alert payload: `{"alert": "CRITICAL: Connection pool exhausted on auth-service at 18:00 UTC."}`.
+- Verify real-time JSON thought process stream over WebSocket.

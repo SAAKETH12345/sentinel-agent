@@ -1,0 +1,47 @@
+# Cyberpunk Real-Time SRE Dashboard Implementation Plan
+
+Develop an Enterprise Cyberpunk SRE Dashboard using React (Vite / Next architecture), Tailwind CSS v4, Framer Motion, Recharts, and the Web Speech API.
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **Web Speech API Browser Compatibility**: SpeechRecognition relies on browser capabilities (`webkitSpeechRecognition` or native `SpeechRecognition` available in Chrome, Edge, and Safari). Fallback button controls will be provided for environments without active microphone permissions.
+> - **Backend & WebSocket Fallback**: The dashboard will connect to the live backend WebSocket (`ws://localhost:8000/ws/alert`). If the backend server is offline or fails to respond, a seamless high-speed hacker simulation engine will automatically stream telemetry logs so the UI remains fully functional and testable out-of-the-box.
+
+## Proposed Changes
+
+### Cyberpunk Design System & Styling
+- Theme: Deep blacks (`#030712`, `#090d16`), slate grays (`#1e293b`), glowing cyan accents (`#06b6d4`), amber alerts (`#f59e0b`), emerald status (`#10b981`).
+- Custom CSS effects: Cyberpunk scanline overlay, neon text glow (`text-shadow`), animated terminal cursor `█`, neon pulse buttons.
+
+### Layout & Component Structure
+
+#### Left Column (Telemetry & Alert Stream)
+1. **Live Telemetry Charts Component (`src/components/TelemetryCharts.tsx`)**
+   - Recharts AreaChart & LineChart for real-time CPU Utilization (%) and Active DB Connections.
+   - Smooth ticking updates every 1.5 seconds with warning threshold indicators (e.g. 85% CPU alert line, 100 DB conn limit).
+2. **AWS CloudWatch Alert Stream Component (`src/components/CloudWatchAlerts.tsx`)**
+   - Scrolling feed of active AWS CloudWatch alarms with severity badges (`CRITICAL`, `HIGH`, `MEDIUM`).
+   - Ability to trigger investigation for any alert or inject custom alert payloads.
+
+#### Right Column (Hacker Agent Terminal & AI Voice Approval)
+3. **Real-Time Hacker Terminal Component (`src/components/AgentTerminal.tsx`)**
+   - Real-time character-by-character typing effect for incoming WebSocket JSON chunks (simulating LLM thought process stream).
+   - Cyberpunk terminal UI with speed control, auto-scroll toggle, syntax-highlighted JSON/Structured logs, and phase progress indicators (Observation -> Vector Search -> Diagnostic -> Proposal -> Resolution).
+4. **AI Voice Approval & Massive Glowing Button Component (`src/components/VoiceApprovalButton.tsx`)**
+   - Massive glowing Cyberpunk "APPROVE FIX" button powered by Framer Motion pulse animations.
+   - Web Speech API integration listening for voice phrase **"Action Approved"** or **"Approve"**.
+   - Real-time microphone audio feedback, transcript indicator, and animated approval trigger sending approval command back through backend/simulation.
+
+#### Core App Integration (`src/App.tsx`)
+- Unify all components into a responsive split layout.
+- Connect global state for active alerts, typing stream, telemetry, and approval status.
+
+## Verification Plan
+
+### Manual Verification
+- Launch the application dev server (`cmd /c npm run dev`).
+- Test WebSocket connection to backend (`ws://localhost:8000/ws/alert`) and verify typing simulation fallback.
+- Verify Recharts CPU & DB Connection live graphs update continuously without lag.
+- Trigger AWS CloudWatch alert and verify character-by-character terminal rendering.
+- Test Web Speech API voice approval by speaking "Action Approved" into microphone (or clicking manual trigger) and observing self-healing phase transition.
