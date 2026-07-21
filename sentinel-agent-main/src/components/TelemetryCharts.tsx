@@ -89,12 +89,12 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = memo(({
 
   return (
     <div
-      className={`glass-panel rounded-xl p-4.5 shadow-2xl relative overflow-hidden transition-colors duration-300 ${
+      className={`glass-panel rounded-xl p-3.5 sm:p-4.5 shadow-2xl relative overflow-hidden transition-colors duration-300 ${
         isCritical ? 'border-red-500/60 glow-red' : 'border-slate-800/90'
       }`}
     >
-      <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-center justify-between mb-3.5 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2">
           <Activity className={`w-4 h-4 ${isCritical ? 'text-red-400' : 'text-cyan-400'} animate-pulse`} />
           <h2
             className={`text-xs uppercase tracking-widest font-bold ${
@@ -108,77 +108,77 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = memo(({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsLive(!isLive)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono transition-all border cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-mono transition-all border cursor-pointer ${
               isLive
                 ? 'bg-cyan-950/80 border-cyan-600/80 text-cyan-300 glow-cyan'
                 : 'bg-slate-900 border-slate-700 text-slate-400'
             }`}
           >
             <RefreshCw className={`w-3 h-3 ${isLive ? 'animate-spin' : ''}`} />
-            <span>{isLive ? 'LIVE STREAMING' : 'PAUSED'}</span>
+            <span>{isLive ? 'STREAMING' : 'PAUSED'}</span>
           </button>
         </div>
       </div>
 
       {/* Metric Cards Row */}
-      <div className="grid grid-cols-2 gap-3 mb-4 font-mono">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mb-3.5 font-mono">
         {/* CPU Utilization Metric Card */}
         <div
-          className={`p-3.5 rounded-xl border transition-colors duration-300 ${
+          className={`p-2.5 sm:p-3.5 rounded-xl border transition-colors duration-300 ${
             isCritical
               ? 'bg-red-950/40 border-red-500/80 glow-red'
               : 'bg-slate-950/80 border-slate-800/80'
           }`}
         >
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
-            <span className="flex items-center gap-1.5 font-semibold">
-              <Cpu className={`w-4 h-4 ${isCritical ? 'text-red-400' : 'text-cyan-400'}`} />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-400 mb-1 gap-1">
+            <span className="flex items-center gap-1.5 font-semibold text-[11px] sm:text-xs">
+              <Cpu className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isCritical ? 'text-red-400' : 'text-cyan-400'}`} />
               <span>CPU Utilization</span>
             </span>
             <span
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+              className={`px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold w-fit ${
                 isCritical ? 'bg-red-950 text-red-400 border border-red-800 animate-pulse' : 'text-cyan-400'
               }`}
             >
-              {isCritical ? 'CRITICAL SPIKE' : 'NOMINAL'}
+              {isCritical ? 'CRITICAL' : 'NOMINAL'}
             </span>
           </div>
-          <div className="text-3xl font-extrabold tracking-tight flex items-baseline gap-1">
+          <div className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-baseline gap-1">
             <span className={isCritical ? 'text-red-400 text-glow-amber' : 'text-cyan-400 text-glow-cyan'}>
               {currentCpu}
             </span>
-            <span className="text-sm text-slate-500 font-bold">%</span>
+            <span className="text-xs sm:text-sm text-slate-500 font-bold">%</span>
           </div>
         </div>
 
         {/* Database Connections Metric Card */}
         <div
-          className={`p-3.5 rounded-xl border transition-colors duration-300 ${
+          className={`p-2.5 sm:p-3.5 rounded-xl border transition-colors duration-300 ${
             currentDb > 85
               ? 'bg-amber-950/40 border-amber-500/80 glow-amber'
               : 'bg-slate-950/80 border-slate-800/80'
           }`}
         >
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
-            <span className="flex items-center gap-1.5 font-semibold">
-              <Database className="w-4 h-4 text-amber-400" />
-              <span>DB Connection Pool</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-400 mb-1 gap-1">
+            <span className="flex items-center gap-1.5 font-semibold text-[11px] sm:text-xs">
+              <Database className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+              <span>DB Pool</span>
             </span>
-            <span className={`text-[10px] font-bold ${currentDb > 85 ? 'text-amber-400' : 'text-emerald-400'}`}>
+            <span className={`text-[9px] sm:text-[10px] font-bold ${currentDb > 85 ? 'text-amber-400' : 'text-emerald-400'}`}>
               {currentDb}/100 max
             </span>
           </div>
-          <div className="text-3xl font-extrabold tracking-tight flex items-baseline gap-1">
+          <div className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-baseline gap-1">
             <span className={currentDb > 85 ? 'text-amber-400 text-glow-amber' : 'text-emerald-400 text-glow-emerald'}>
               {currentDb}
             </span>
-            <span className="text-sm text-slate-500 font-bold">conns</span>
+            <span className="text-xs sm:text-sm text-slate-500 font-bold">conns</span>
           </div>
         </div>
       </div>
 
       {/* Recharts Area Chart for CPU & DB */}
-      <div className="h-44 w-full pt-1">
+      <div className="h-36 sm:h-44 w-full pt-1">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -193,8 +193,8 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = memo(({
             </defs>
 
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.4} />
-            <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-            <YAxis stroke="#64748b" tick={{ fontSize: 10 }} domain={[0, 100]} />
+            <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
+            <YAxis stroke="#64748b" tick={{ fontSize: 9 }} domain={[0, 100]} />
 
             <Tooltip
               contentStyle={{
@@ -202,7 +202,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = memo(({
                 borderColor: '#1e293b',
                 borderRadius: '10px',
                 color: '#e2e8f0',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontFamily: 'monospace',
                 boxShadow: '0 0 20px rgba(6,182,212,0.3)',
               }}
@@ -212,7 +212,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = memo(({
               y={85}
               stroke="#ef4444"
               strokeDasharray="4 4"
-              label={{ value: 'THROTTLE THRESHOLD 85%', fill: '#ef4444', fontSize: 10, position: 'insideTopRight' }}
+              label={{ value: '85%', fill: '#ef4444', fontSize: 9, position: 'insideTopRight' }}
             />
 
             <Area
