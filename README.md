@@ -21,7 +21,8 @@ Once resolved, SentinelAgent automatically writes new post-mortem embeddings bac
 * **🔍 Live State Inspection:** Connects directly via the CockroachDB Managed Model Context Protocol (MCP) server to query active connection pools, slow transactions, and node health.
 * **🎙️ AI Voice & Human-in-the-Loop Control:** Requires explicit human authorization before executing scaling or destructive actions—supporting both click and Web Speech API voice commands ("*Action Approved*").
 * **💻 Glassmorphic Cyberpunk Command Center:** A real-time dashboard featuring 144 FPS streaming terminal logs, live cluster telemetry charts (Recharts), and interactive 2D node graphs visualizing vector similarity search scores (`@xyflow/react`).
-* **🔄 Auto-Heal & Memory Synthesis:** Automatically writes newly synthesized runbooks back into CockroachDB after resolving novel incidents.
+* **📱 Mobile Responsive & Hardware Accelerated:** Fully responsive UI with 144 FPS camera-gliding smooth scroll tracking and RAF typewriter streaming.
+* **🌐 Netlify Deployment Ready:** Built-in `netlify.toml` and SPA `_redirects` for instant zero-configuration deployment.
 
 ---
 
@@ -68,6 +69,43 @@ Once resolved, SentinelAgent automatically writes new post-mortem embeddings bac
 | **Reasoning Engine** | **Amazon Bedrock** | Anthropic Claude 3.5 Sonnet model hosted on AWS infrastructure. |
 | **Backend Service** | **FastAPI & WebSockets** | Python 3.11 asynchronous streaming server. |
 | **Frontend UI** | **React 19, Vite, Tailwind CSS, Framer Motion** | Glassmorphic dark-mode SRE terminal with Web Speech API support. |
+| **Hosting & CI/CD** | **Netlify** | Zero-config continuous deployment with `netlify.toml`. |
+
+---
+
+## 🌐 Netlify Deployment Guide
+
+SentinelAgent includes pre-configured `netlify.toml` and SPA `_redirects` rules for one-click deployment.
+
+### Option A: Import GitHub Repository in Netlify (Recommended)
+
+1. Log into your **[Netlify Dashboard](https://app.netlify.com)**.
+2. Click **"Add new site"** $\rightarrow$ **"Import an existing project"**.
+3. Select **GitHub** and authorize your account.
+4. Pick repository: `SAAKETH12345/sentinel-agent`.
+5. Netlify will auto-detect the configuration from `netlify.toml`:
+   - **Base directory:** `sentinel-agent-main`
+   - **Build command:** `npm run build`
+   - **Publish directory:** `sentinel-agent-main/dist`
+6. Click **"Deploy sentinel-agent"**!
+
+---
+
+### Option B: Deploy via Netlify CLI
+
+```bash
+# Install Netlify CLI globally
+npm install -g netlify-cli
+
+# Navigate to project directory
+cd sentinel-agent-main
+
+# Authenticate with Netlify
+netlify login
+
+# Deploy preview or production site
+netlify deploy --build --prod
+```
 
 ---
 
