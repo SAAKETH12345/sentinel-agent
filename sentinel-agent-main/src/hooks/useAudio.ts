@@ -86,10 +86,10 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
   const stopTyping = useCallback(() => {
     if (!typingAudioRef.current) return;
     const audio = typingAudioRef.current;
-    if (!audio.paused) {
+    try {
       audio.pause();
       audio.currentTime = 0;
-    }
+    } catch {}
   }, []);
 
   const playAlert = useCallback(() => {

@@ -37,14 +37,17 @@ export const AgentTerminal: React.FC<AgentTerminalProps> = memo(({
   const [autoScroll, setAutoScroll] = useState<boolean>(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Audio typewriter sound effect loop
+  // Audio typewriter sound effect loop (plays strictly while text is actively typing)
   useEffect(() => {
-    if ((isTyping || isStreaming) && currentPhase !== 'RESOLVED' && currentPhase !== 'IDLE') {
+    if (isTyping) {
       playTyping?.();
     } else {
       stopTyping?.();
     }
-  }, [isTyping, isStreaming, currentPhase, playTyping, stopTyping]);
+    return () => {
+      stopTyping?.();
+    };
+  }, [isTyping, playTyping, stopTyping]);
 
   // Ultra-Fluid Hacker Terminal Typewriter Animation (requestAnimationFrame @ 144 FPS)
   useEffect(() => {
