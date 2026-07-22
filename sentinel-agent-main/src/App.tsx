@@ -6,6 +6,8 @@ import { CloudWatchAlerts } from './components/CloudWatchAlerts';
 import { AgentTerminal, TerminalStep } from './components/AgentTerminal';
 import { VoiceApprovalButton } from './components/VoiceApprovalButton';
 import { VectorSimilarityGraph } from './components/VectorSimilarityGraph';
+import { AgentMemoryPanel } from './components/AgentMemoryPanel';
+import { ClusterTopology, ClusterState } from './components/ClusterTopology';
 
 type IncidentPhase =
   | 'IDLE'
@@ -17,7 +19,7 @@ type IncidentPhase =
   | 'SELF_HEAL'
   | 'RESOLVED';
 
-type ActiveTab = 'TERMINAL' | 'VECTOR_GRAPH';
+type ActiveTab = 'TERMINAL' | 'VECTOR_GRAPH' | 'AGENT_MEMORY';
 
 const PHASE_STEPS: { key: IncidentPhase; label: string }[] = [
   { key: 'RECEIVE_TELEMETRY', label: '1. TELEMETRY' },
@@ -382,7 +384,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Dashboard Layout - Responsive Mobile Stack */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 z-10">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 lg:p-6 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 z-10">
         {/* Left Column (5 Cols on desktop, full width on mobile): Telemetry Charts & CloudWatch Alerts */}
         <div className="lg:col-span-5 flex flex-col space-y-4 sm:space-y-5">
           {/* Real-time Telemetry Graphs */}
@@ -459,14 +461,14 @@ export default function App() {
           </motion.div>
         </div>
 
-        {/* Right Column (7 Cols on desktop, full width on mobile): Views Switcher + Agent Terminal / Vector Similarity Graph */}
+        {/* Right Column (7 Cols on desktop, full width on mobile): Split Pane Navigation & Components */}
         <div className="lg:col-span-7 flex flex-col space-y-4">
-          {/* Mobile Responsive Navigation View Tabs */}
+          {/* Responsive Navigation View Tabs */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-[#080d1a]/90 p-1.5 rounded-xl border border-slate-800 font-mono text-xs shadow-lg backdrop-blur-md gap-2">
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => setActiveTab('TERMINAL')}
-                className={`flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-extrabold transition-all flex items-center gap-2 border text-xs cursor-pointer ${
+                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-extrabold transition-all flex items-center gap-2 border text-xs cursor-pointer ${
                   activeTab === 'TERMINAL'
                     ? 'bg-cyan-950 text-cyan-300 border-cyan-600 glow-cyan'
                     : 'text-slate-400 hover:text-slate-200 border-transparent'
@@ -478,17 +480,29 @@ export default function App() {
 
               <button
                 onClick={() => setActiveTab('VECTOR_GRAPH')}
-                className={`flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-extrabold transition-all flex items-center gap-2 border text-xs cursor-pointer ${
+                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-extrabold transition-all flex items-center gap-2 border text-xs cursor-pointer ${
                   activeTab === 'VECTOR_GRAPH'
                     ? 'bg-emerald-950 text-emerald-300 border-emerald-600 glow-emerald'
                     : 'text-slate-400 hover:text-slate-200 border-transparent'
                 }`}
               >
                 <Network className="w-4 h-4 text-emerald-400" />
-                <span>CockroachDB Vector Index</span>
+                <span>Cluster & Vector Index</span>
                 {phase === 'VECTOR_SEARCH' && (
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('AGENT_MEMORY')}
+                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-extrabold transition-all flex items-center gap-2 border text-xs cursor-pointer ${
+                  activeTab === 'AGENT_MEMORY'
+                    ? 'bg-purple-950 text-purple-300 border-purple-600 glow-cyan'
+                    : 'text-slate-400 hover:text-slate-200 border-transparent'
+                }`}
+              >
+                <Database className="w-4 h-4 text-cyan-400" />
+                <span>Agent Memory & MCP Audit</span>
               </button>
             </div>
 
@@ -506,6 +520,7 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.25 }}
+                className="space-y-4"
               >
                 <AgentTerminal
                   logs={logs}
@@ -515,18 +530,48 @@ export default function App() {
                   onTriggerSimulatedAlert={() => runIncidentPipeline()}
                 />
               </motion.div>
-            ) : (
+            ) : activeTab === 'VECTOR_GRAPH' ? (
               <motion.div
                 key="graph"
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.25 }}
+                className="space-y-5"
               >
+                <ClusterTopology
+                  clusterState={
+                    phase === 'SELF_HEAL'
+                      ? 'RECOVERING'
+                      : phase !== 'IDLE' && phase !== 'RESOLVED'
+                      ? 'INCIDENT'
+                      : 'HEALTHY'
+                  }
+                />
                 <VectorSimilarityGraph
                   alertText={telemetryInput}
                   isSearching={phase === 'VECTOR_SEARCH'}
                 />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="memory_panel"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-5"
+              >
+                <ClusterTopology
+                  clusterState={
+                    phase === 'SELF_HEAL'
+                      ? 'RECOVERING'
+                      : phase !== 'IDLE' && phase !== 'RESOLVED'
+                      ? 'INCIDENT'
+                      : 'HEALTHY'
+                  }
+                />
+                <AgentMemoryPanel />
               </motion.div>
             )}
           </AnimatePresence>
@@ -539,6 +584,76 @@ export default function App() {
           />
         </div>
       </main>
+
+      {/* DEMO CONTROL PANEL TOOLBAR (Fixed Sleek Admin Toolbar for 3-Minute Hackathon Demo Video) */}
+      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 border-t border-cyan-500/40 backdrop-blur-xl px-3 sm:px-6 py-2 shadow-2xl flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+          <span className="font-extrabold text-cyan-300 tracking-wider text-[11px] uppercase flex items-center gap-1.5">
+            <Wrench className="w-3.5 h-3.5 text-cyan-400" />
+            Demo Control Panel <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-600 font-mono">SRE ADMIN TOOLBAR</span>
+          </span>
+        </div>
+
+        {/* Hackathon Demo Scenario Trigger Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Button 1: DB Pool Exhaustion Scenario */}
+          <button
+            onClick={() => {
+              const payload = 'CRITICAL: DB Connection Pool Exhausted on auth-service at 18:00 UTC.';
+              setTelemetryInput(payload);
+              setActiveTab('VECTOR_GRAPH');
+              runIncidentPipeline(payload);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900/90 text-red-200 border border-red-500/70 hover:border-red-400 font-bold transition-all text-xs flex items-center gap-1.5 shadow-lg glow-red cursor-pointer"
+            title="Simulate AWS CloudWatch payload arriving and trigger ClusterTopology INCIDENT state"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 text-red-400 animate-pulse" />
+            <span>Trigger Scenario: DB Pool Exhaustion</span>
+          </button>
+
+          {/* Button 2: Slow Queries Scenario */}
+          <button
+            onClick={() => {
+              const payload = 'HIGH_ALERT: Slow Query Threshold Exceeded (>4800ms) on pg_stat_activity query runner.';
+              setTelemetryInput(payload);
+              setActiveTab('TERMINAL');
+              runIncidentPipeline(payload);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900/90 text-amber-200 border border-amber-500/70 hover:border-amber-400 font-bold transition-all text-xs flex items-center gap-1.5 shadow-lg glow-amber cursor-pointer"
+            title="Simulate slow query metric payload arriving"
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Trigger Scenario: Slow Queries</span>
+          </button>
+
+          {/* Button 3: Agent Crash & Recovery */}
+          <button
+            onClick={() => {
+              setMemoryNotification('⚠️ AGENT PROCESS CRASH SIMULATED (SIGSEGV) — Restarting worker daemon & re-syncing Raft topology...');
+              setPhase('SELF_HEAL');
+              setLogs((prev) => [
+                ...prev,
+                {
+                  phase: 'SELF_HEAL',
+                  reasoning: 'CRASH RECOVERY SIMULATION: Agent process crash detected. Restoring execution memory checkpoint from CockroachDB pgvector.',
+                  action: 'systemctl restart sentinel-agent-worker && pgvector_resync() -> RECOVERY_SUCCESS',
+                },
+              ]);
+              setTimeout(() => {
+                setPhase('RESOLVED');
+                setMemoryNotification('Agent process recovered & memory state re-synchronized!');
+                setTimeout(() => setMemoryNotification(null), 5000);
+              }, 3000);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900/90 text-cyan-200 border border-cyan-500/70 hover:border-cyan-400 font-bold transition-all text-xs flex items-center gap-1.5 shadow-lg glow-cyan cursor-pointer"
+            title="Simulate process restart, state re-sync, and recovery transition"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+            <span>Simulate Agent Crash & Recovery</span>
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }

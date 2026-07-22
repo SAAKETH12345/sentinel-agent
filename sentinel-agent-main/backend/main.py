@@ -5,7 +5,13 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from database import init_db_pool, vector_cosine_similarity_search, insert_runbook, _cosine_similarity
+from database import (
+    init_db_pool,
+    log_ephemeral_incident,
+    search_past_incidents,
+    insert_incident_memory,
+    _cosine_similarity
+)
 from bedrock_client import stream_claude_thought_process
 
 logging.basicConfig(level=logging.INFO)
@@ -13,8 +19,8 @@ logger = logging.getLogger("sentinel.main")
 
 app = FastAPI(
     title="SentinelAgent Backend",
-    description="Highly concurrent FastAPI backend with CockroachDB vector search & Bedrock Claude 3.5 Sonnet streaming.",
-    version="3.0.0"
+    description="Highly concurrent FastAPI backend with CockroachDB Dual Memory (Row-Level TTL & vector_cosine_ops).",
+    version="3.1.0"
 )
 
 # Enable CORS for frontend client integration
@@ -31,12 +37,12 @@ connected_clients: set[WebSocket] = set()
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Initializing SentinelAgent Backend...")
+    logger.info("Initializing SentinelAgent Backend with CockroachDB Dual Memory...")
     await asyncio.to_thread(init_db_pool)
 
 class RunbookCreate(BaseModel):
     title: str
-    description: str
+    summary: str
     solution: str
     embedding: list[float] | None = None
 
@@ -49,27 +55,28 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "SentinelAgent Backend",
-        "websocket_endpoint": "/ws/alert"
+        "websocket_endpoint": "/ws/alert",
+        "cockroachdb_memory": "Dual Memory Active (Row-Level TTL & vector_cosine_ops)"
     }
 
 @app.post("/api/runbooks")
 async def create_runbook(item: RunbookCreate):
-    """Insert a new runbook entry into CockroachDB vector store."""
+    """Insert a new incident memory entry into CockroachDB vector store."""
     embedding = item.embedding or ([0.1] * 1536)
     record = await asyncio.to_thread(
-        insert_runbook,
+        insert_incident_memory,
         item.title,
-        item.description,
+        item.summary,
         item.solution,
         embedding
     )
-    return {"status": "success", "runbook": record}
+    return {"status": "success", "incident": record}
 
 @app.post("/api/search")
-async def search_runbooks(item: SearchRequest):
-    """Perform vector cosine similarity search against CockroachDB."""
+async def search_incidents(item: SearchRequest):
+    """Perform vector cosine similarity search (vector_cosine_ops) against CockroachDB."""
     results = await asyncio.to_thread(
-        vector_cosine_similarity_search,
+        search_past_incidents,
         item.query_embedding,
         item.top_k
     )
@@ -79,11 +86,11 @@ async def search_runbooks(item: SearchRequest):
 async def alert_websocket_endpoint(websocket: WebSocket):
     """
     WebSocket endpoint /ws/alert that orchestrates real-time hackathon telemetry streams:
-    1. Spikes CPU graph to 99% upon incoming DB Connection Pool Exhaustion alert.
-    2. Performs CockroachDB pgvector similarity search.
-    3. Streams agent reasoning and proposes scaling AWS nodes & clearing zombie DB sessions.
-    4. Awaits Voice Approval ('Action Approved').
-    5. Returns CPU graph smoothly to 20% and updates CockroachDB vector memory.
+    1. Logs ephemeral incident with CockroachDB Row-Level TTL (EXPIRE AT 24h).
+    2. Spikes CPU graph to 99% upon incoming DB Connection Pool Exhaustion alert.
+    3. Performs CockroachDB vector_cosine_ops similarity search across incident_memory.
+    4. Streams similarity distances & MCP audit logs to frontend for AgentMemoryPanel.
+    5. Awaits Voice Approval ('Action Approved') & resolves incident telemetry.
     """
     await websocket.accept()
     connected_clients.add(websocket)
@@ -119,14 +126,22 @@ async def alert_websocket_endpoint(websocket: WebSocket):
                         pass
                 continue
 
-            # Standard or SPIKE_CPU orchestration flow
-            # Step 1: Send CPU spike telemetry event
+            # Step 1: Log Ephemeral Active Incident (Row-Level TTL: 24h)
+            ephemeral_log = await asyncio.to_thread(
+                log_ephemeral_incident,
+                title=f"Telemetry Alert: {alert_text[:50]}",
+                summary="Active incident logged with 24-hour CockroachDB Row-Level TTL",
+                details=alert_text
+            )
+            logger.info(f"Logged active ephemeral incident: {ephemeral_log['id']}")
+
+            # Send CPU spike telemetry event
             spike_event = {
                 "type": "SPIKE_CPU",
                 "phase": "RECEIVE_TELEMETRY",
                 "targetCpu": 99,
-                "reasoning": f"CRITICAL ALERT: {alert_text}. CPU utilization surging to 99%.",
-                "action": "acknowledge_telemetry_alert(source: 'AWS/CloudWatch', severity: 'CRITICAL')"
+                "reasoning": f"CRITICAL ALERT: {alert_text}. Logged to active_incidents (TTL 24h). CPU surging to 99%.",
+                "action": f"log_ephemeral_incident(id: '{ephemeral_log['id']}', expire_at: 'now() + 24 hours')"
             }
             for client in list(connected_clients):
                 try:
@@ -136,19 +151,42 @@ async def alert_websocket_endpoint(websocket: WebSocket):
 
             await asyncio.sleep(1.0)
 
-            # Step 2: Vector Search against CockroachDB
+            # Step 2: Vector Search against CockroachDB incident_memory (vector_cosine_ops)
             query_embedding = [0.1] * 1536
-            retrieved_runbooks = await asyncio.to_thread(
-                vector_cosine_similarity_search,
+            retrieved_incidents = await asyncio.to_thread(
+                search_past_incidents,
                 query_embedding,
                 top_k=3
             )
 
-            top_match = retrieved_runbooks[0] if retrieved_runbooks else {}
+            top_match = retrieved_incidents[0] if retrieved_incidents else {}
+            top_sim = top_match.get("similarity", 0.94)
+
             vector_event = {
                 "phase": "VECTOR_SEARCH",
-                "reasoning": f"Queried CockroachDB pgvector similarity index. Found top match: '{top_match.get('title', 'Auth Service Connection Leak')}' (0.962 similarity).",
-                "action": f"vector_cosine_similarity_search(query_alert: '{alert_text[:40]}...', top_k: 3)"
+                "reasoning": f"Queried CockroachDB `incident_memory` using `vector_cosine_ops`. Top match: '{top_match.get('title', 'DB Pool Exhaustion')}' (similarity: {top_sim}).",
+                "action": f"search_past_incidents(query_alert: '{alert_text[:35]}...', top_k: 3)",
+                "pastIncidents": retrieved_incidents,
+                "mcpAuditLogs": [
+                    {
+                        "timestamp": "18:55:04 UTC",
+                        "toolName": "pgvector_similarity_search",
+                        "status": "[READ_ONLY | GRANTED]",
+                        "details": f"Queried 1536d embeddings (vector_cosine_ops). Top match score: {top_sim}"
+                    },
+                    {
+                        "timestamp": "18:56:22 UTC",
+                        "toolName": "pg_stat_activity_inspect",
+                        "status": "[READ_ONLY | GRANTED]",
+                        "details": "Fetched active connections & transaction locks."
+                    },
+                    {
+                        "timestamp": "18:57:40 UTC",
+                        "toolName": "sql_terminate_idle_connections",
+                        "status": "[WRITE_CONSENT | AWAITING_APPROVAL]",
+                        "details": "Requires human SRE voice consent to execute PG_CANCEL_BACKEND."
+                    }
+                ]
             }
             for client in list(connected_clients):
                 try:
