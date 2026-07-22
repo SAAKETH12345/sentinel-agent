@@ -13,6 +13,7 @@ from database import (
     _cosine_similarity
 )
 from bedrock_client import stream_claude_thought_process
+from s3_client import generate_post_mortem
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sentinel.main")
@@ -110,14 +111,26 @@ async def alert_websocket_endpoint(websocket: WebSocket):
             alert_text = payload.get("alert", raw_data)
 
             if msg_type == "APPROVE_FIX" or payload.get("phase") == "SELF_HEAL":
-                # Broadcast self-heal completion & memory update
+                post_mortem_url, md_content, s3_key = await asyncio.to_thread(
+                    generate_post_mortem,
+                    {
+                        "incident_id": "INC-8891",
+                        "alert_text": alert_text,
+                        "root_cause": "Stale idle_in_transaction database locks causing max connection threshold breaches.",
+                        "applied_fix": "Scaled AWS EC2 auto-scaling nodes & executed session cancellation on idle connections.",
+                        "metrics": "CPU dropped from 99% to 20%, connection pool utilization restored to 22%."
+                    }
+                )
+                # Broadcast self-heal completion & memory update & S3 post mortem URL
                 resolution_event = {
                     "type": "RESOLVE_INCIDENT",
                     "phase": "RESOLVED",
                     "targetCpu": 20,
-                    "reasoning": "Voice approval confirmed ('Action Approved'). Scaled AWS nodes and cleared idle DB sessions. CPU returned to 20%.",
-                    "action": "update_runbook_memory(incident_id: 'INC-8891', resolution: 'Scaled AWS EC2 nodes and cleared idle CockroachDB sessions')",
-                    "memoryUpdated": True
+                    "reasoning": "Voice approval confirmed ('Action Approved'). Scaled AWS nodes and cleared idle DB sessions. S3 Post-Mortem generated and uploaded.",
+                    "action": f"update_runbook_memory(incident_id: 'INC-8891', s3_key: '{s3_key}')",
+                    "memoryUpdated": True,
+                    "postMortemUrl": post_mortem_url,
+                    "s3Key": s3_key
                 }
                 for client in list(connected_clients):
                     try:

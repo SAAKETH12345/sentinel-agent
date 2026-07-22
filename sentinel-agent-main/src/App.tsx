@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Database, Activity, ShieldAlert, CheckCircle, Search, Wrench, Play, Cpu, AlertTriangle, Radio, Server, Layers, Network, CheckCircle2, Sparkles, Zap, Flame, Clock, RefreshCw } from 'lucide-react';
+import { Terminal, Database, Activity, ShieldAlert, CheckCircle, Search, Wrench, Play, Cpu, AlertTriangle, Radio, Server, Layers, Network, CheckCircle2, Sparkles, Zap, Flame, Clock, RefreshCw, Download, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TelemetryCharts } from './components/TelemetryCharts';
 import { CloudWatchAlerts } from './components/CloudWatchAlerts';
@@ -8,6 +8,7 @@ import { VoiceApprovalButton } from './components/VoiceApprovalButton';
 import { VectorSimilarityGraph } from './components/VectorSimilarityGraph';
 import { AgentMemoryPanel } from './components/AgentMemoryPanel';
 import { ClusterTopology, ClusterState } from './components/ClusterTopology';
+import { useAudio } from './hooks/useAudio';
 
 type IncidentPhase =
   | 'IDLE'
@@ -39,10 +40,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('TERMINAL');
   const [overrideCpu, setOverrideCpu] = useState<number | null>(null);
   const [memoryNotification, setMemoryNotification] = useState<string | null>(null);
+  const [postMortemUrl, setPostMortemUrl] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string>('');
   const [telemetryInput, setTelemetryInput] = useState(
     'CRITICAL: DB Connection Pool Exhausted on auth-service at 18:00 UTC.'
   );
+
+  const { playTyping, stopTyping, playAlert, playSuccess, isMuted, toggleMute } = useAudio();
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -56,6 +60,15 @@ export default function App() {
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Play alert sound when phase reaches AWAITING_APPROVAL (MCP Audit Awaiting Governance Approval)
+  const prevPhaseRef = useRef<IncidentPhase>(phase);
+  useEffect(() => {
+    if (phase === 'AWAITING_APPROVAL' && prevPhaseRef.current !== 'AWAITING_APPROVAL') {
+      playAlert();
+    }
+    prevPhaseRef.current = phase;
+  }, [phase, playAlert]);
 
   // Auto-switch tabs to highlight active phase
   useEffect(() => {
@@ -91,8 +104,11 @@ export default function App() {
             setOverrideCpu(20);
             setPhase('RESOLVED');
             setIsStreaming(false);
+            if (data.postMortemUrl) {
+              setPostMortemUrl(data.postMortemUrl);
+            }
             setMemoryNotification(
-              'CockroachDB Vector Memory Updated: Resolution Runbook Artifact Saved successfully!'
+              'CockroachDB Vector Memory Updated: Resolution Runbook Artifact Saved & S3 Post-Mortem Generated!'
             );
             setTimeout(() => setMemoryNotification(null), 7000);
           }
@@ -210,6 +226,8 @@ export default function App() {
 
   // Execution when Voice or Button approval is granted
   const handleApproveFix = () => {
+    playSuccess();
+    stopTyping();
     setPhase('SELF_HEAL');
     setIsStreaming(true);
 
@@ -229,20 +247,25 @@ export default function App() {
 
     setTimeout(() => {
       setOverrideCpu(20);
+      const mockMd = `# 🚨 Incident Post-Mortem: INC-8891\n\n**Incident ID**: \`INC-8891\`  \n**Status**: \`RESOLVED\`  \n**Service Impacted**: \`auth-service\`  \n**AWS S3 Bucket**: \`sentinel-agent-postmortems\`  \n\n---  \n\n## 1. Executive Summary  \nOn 18:00 UTC, SentinelAgent detected DB Connection Pool Exhaustion on auth-service (CPU spiked to 99%). Following Voice Governance Approval ("Action Approved"), SentinelAgent autonomously scaled AWS EC2 cluster nodes and terminated idle database transactions. System CPU utilization was restored to 20.0% within 45 seconds.  \n\n---  \n\n## 2. Root Cause Analysis (RCA)  \nStale idle_in_transaction database locks causing max connection threshold breaches.  \n\n---  \n\n## 3. Applied Fix  \nScaled AWS EC2 auto-scaling nodes & executed session cancellation on idle connections.  \n\n---  \n\n## 4. CockroachDB Dual Memory  \nResolution artifact persisted into CockroachDB \`incident_memory\` using \`vector_cosine_ops\`. Active incident record purged via 24-hour Row-Level TTL.`;
+      const encoded = encodeURIComponent(mockMd);
+      setPostMortemUrl((prev) => prev || `data:text/markdown;charset=utf-8,${encoded}`);
+
       setLogs((prev) => [
         ...prev,
         {
           phase: 'RESOLVED',
           reasoning:
-            'Telemetry verified nominal. CPU utilization animated back down from 99% to 20%, DB connection pool cleared. Resolution runbook saved to CockroachDB vector memory.',
+            'Telemetry verified nominal. CPU utilization animated back down from 99% to 20%, DB connection pool cleared. Resolution runbook saved to CockroachDB vector memory and AWS S3 post-mortem archived.',
           action:
-            'update_runbook_memory(incident_id: "INC-8891", resolution: "Scaled AWS EC2 nodes & cleared idle DB sessions")',
+            'update_runbook_memory(incident_id: "INC-8891", s3_bucket: "sentinel-agent-postmortems")',
         },
       ]);
       setPhase('RESOLVED');
       setIsStreaming(false);
+      stopTyping();
       setMemoryNotification(
-        'CockroachDB Vector Memory Updated: Resolution Runbook Artifact Saved successfully!'
+        'CockroachDB Vector Memory Updated: Resolution Runbook Artifact Saved & S3 Post-Mortem Archived!'
       );
       setTimeout(() => setMemoryNotification(null), 7000);
     }, 2400);
@@ -254,6 +277,7 @@ export default function App() {
   };
 
   const clearTerminal = () => {
+    stopTyping();
     setLogs([]);
     setPhase('IDLE');
     setIsStreaming(false);
@@ -311,6 +335,23 @@ export default function App() {
               <Network className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
               <span>pgvector: <strong className="text-cyan-300">ONLINE</strong></span>
             </div>
+
+            <button
+              onClick={toggleMute}
+              className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border text-[10px] sm:text-xs font-mono transition-all cursor-pointer shadow-md ${
+                isMuted
+                  ? 'bg-slate-950/80 border-slate-700 text-slate-500'
+                  : 'bg-cyan-950/80 border-cyan-500/60 text-cyan-300 glow-cyan'
+              }`}
+              title={isMuted ? 'Unmute UI Sound Effects' : 'Mute UI Sound Effects'}
+            >
+              {isMuted ? (
+                <VolumeX className="w-3.5 h-3.5 text-slate-500" />
+              ) : (
+                <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+              )}
+              <span>{isMuted ? 'AUDIO: OFF' : 'AUDIO: ON'}</span>
+            </button>
 
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-400 shadow-md">
               <Clock className="w-4 h-4 text-cyan-400" />
@@ -376,9 +417,23 @@ export default function App() {
               <Sparkles className="w-4 h-4 text-emerald-400 animate-spin shrink-0" />
               <span className="font-extrabold text-glow-emerald text-xs sm:text-sm text-center sm:text-left">{memoryNotification}</span>
             </div>
-            <span className="text-[9px] sm:text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-900 border border-emerald-600 text-emerald-200 font-bold shrink-0">
-              pgvector upsert: SUCCESS
-            </span>
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              {postMortemUrl && (
+                <a
+                  href={postMortemUrl}
+                  download="Incident_Post_Mortem_INC-8891.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 rounded-lg bg-cyan-950 border border-cyan-400 text-cyan-300 font-mono font-bold text-xs flex items-center gap-1.5 glow-cyan hover:bg-cyan-900 transition-all shrink-0 cursor-pointer shadow-md"
+                >
+                  <Download className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>📥 Download S3 Post-Mortem (.md)</span>
+                </a>
+              )}
+              <span className="text-[9px] sm:text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-900 border border-emerald-600 text-emerald-200 font-bold shrink-0">
+                pgvector upsert: SUCCESS
+              </span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -528,6 +583,8 @@ export default function App() {
                   currentPhase={phase}
                   onClearLogs={clearTerminal}
                   onTriggerSimulatedAlert={() => runIncidentPipeline()}
+                  playTyping={playTyping}
+                  stopTyping={stopTyping}
                 />
               </motion.div>
             ) : activeTab === 'VECTOR_GRAPH' ? (
@@ -581,6 +638,7 @@ export default function App() {
             onApprove={handleApproveFix}
             isAwaitingApproval={phase === 'AWAITING_APPROVAL'}
             isResolved={phase === 'RESOLVED'}
+            postMortemUrl={postMortemUrl}
           />
         </div>
       </main>
