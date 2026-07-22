@@ -46,7 +46,7 @@ export default function App() {
     'CRITICAL: DB Connection Pool Exhausted on auth-service at 18:00 UTC.'
   );
 
-  const { playTyping, stopTyping, playAlert, playSuccess, isMuted, toggleMute } = useAudio();
+  const { playAlert, playSuccess, isMuted, toggleMute } = useAudio();
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -227,7 +227,6 @@ export default function App() {
   // Execution when Voice or Button approval is granted
   const handleApproveFix = () => {
     playSuccess();
-    stopTyping();
     setPhase('SELF_HEAL');
     setIsStreaming(true);
 
@@ -263,7 +262,6 @@ export default function App() {
       ]);
       setPhase('RESOLVED');
       setIsStreaming(false);
-      stopTyping();
       setMemoryNotification(
         'CockroachDB Vector Memory Updated: Resolution Runbook Artifact Saved & S3 Post-Mortem Archived!'
       );
@@ -277,7 +275,6 @@ export default function App() {
   };
 
   const clearTerminal = () => {
-    stopTyping();
     setLogs([]);
     setPhase('IDLE');
     setIsStreaming(false);
@@ -583,8 +580,6 @@ export default function App() {
                   currentPhase={phase}
                   onClearLogs={clearTerminal}
                   onTriggerSimulatedAlert={() => runIncidentPipeline()}
-                  playTyping={playTyping}
-                  stopTyping={stopTyping}
                 />
               </motion.div>
             ) : activeTab === 'VECTOR_GRAPH' ? (
