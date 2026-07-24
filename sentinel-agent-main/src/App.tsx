@@ -437,7 +437,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Dashboard Layout - Responsive Mobile Stack */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 lg:p-6 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 z-10">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 lg:p-6 pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 z-10">
         {/* Left Column (5 Cols on desktop, full width on mobile): Telemetry Charts & CloudWatch Alerts */}
         <div className="lg:col-span-5 flex flex-col space-y-4 sm:space-y-5">
           {/* Real-time Telemetry Graphs */}

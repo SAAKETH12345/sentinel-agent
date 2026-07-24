@@ -3,7 +3,7 @@ import { Github, Linkedin } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full border-t border-slate-800 bg-[#030712]/95 py-5 px-4 sm:px-8 text-slate-400 font-mono relative z-20 backdrop-blur-md">
+    <footer className="w-full border-t border-slate-800/80 bg-[#030712]/95 pt-6 pb-20 sm:pb-20 px-4 sm:px-8 text-slate-400 font-mono relative z-20 backdrop-blur-md">
       <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Left side (or top on mobile): Copyright text */}
         <div className="text-slate-500 text-xs text-center md:text-left">
