@@ -69,7 +69,7 @@ graph TD
     end
 ```
 
-> 📖 **Full AI Architecture Diagram Prompts**: View [ARCHITECTURE_PROMPT.md](./ARCHITECTURE_PROMPT.md) for Midjourney v6, DALL-E 3, PlantUML, and Draw.io visual diagram specifications.
+> 📖 **Full System Architecture Specifications**: View [ARCHITECTURE.md](./ARCHITECTURE.md) for full system data flows, PlantUML diagrams, and technical specifications.
 
 ---
 

@@ -1,39 +1,20 @@
-# 📐 SentinelAgent Architecture Diagram Prompts & Specifications
+# 📐 SentinelAgent System Architecture Specification
 
 > **System**: SentinelAgent — Autonomous Level 3 SRE AI System  
-> **Built For**: CockroachDB × AWS Hackathon  
+> **Hackathon**: CockroachDB × AWS Hackathon  
 > **Authors**: Saaketh Kazipeta & Lalitha Subramanyam  
 
 ---
 
-## 🎨 1. AI Image Generator Prompt (Midjourney v6 / DALL-E 3 / Flux.1 / Imagen 3)
+## 📌 1. System Overview
 
-Copy and paste the following prompt into your preferred AI image generator (e.g. Midjourney, DALL-E 3, or Leonardo.ai) to produce a stunning 3D isometric cloud architecture diagram for SentinelAgent:
+**SentinelAgent** is an autonomous Site Reliability Engineering (SRE) incident detection, diagnostic, and self-healing system designed to resolve cloud infrastructure outages in real-time.
 
-```text
-A sleek 3D isometric enterprise cloud architecture diagram of an autonomous AI Site Reliability Engineering system named "SentinelAgent". 
-
-Dark cyberpunk aesthetic with deep navy blue (#030712) background and luminous glowing neon lines. High-tech futuristic infrastructure visualization featuring distinct glassmorphic node blocks connected by glowing data conduits in cyan (#06b6d4), emerald green (#10b981), and warning amber (#f59e0b).
-
-Key architectural nodes shown in the 3D isometric layout:
-1. "AWS CloudWatch Telemetry Bus" emitting pulsing amber alert packets into a glowing FastAPI WebSocket gateway node.
-2. "CockroachDB Dual Memory Core" at the center: a futuristic glowing server cluster split into two layers:
-   - "Row-Level TTL Engine" (active incidents, expiring in 24 hours).
-   - "1536d Vector Memory Index" (CockroachDB pgvector HNSW vector_cosine_ops index).
-3. "Amazon Bedrock AI Engine" represented by a glowing purple-cyan neural core labeled "Anthropic Claude 3.5 Sonnet".
-4. "Managed MCP Governance Node" acting as a security gate showing a bright amber shield icon with a "PENDING_WRITE Execution Pause" banner.
-5. "Human SRE Voice Governance Bridge" depicting a glowing microphone icon connected to a voice approval gate ("Action Approved").
-6. "Amazon S3 Storage Vault" displaying post-mortem markdown documents with a presigned URL key badge.
-7. "Vite React Command Center" displaying a sleek 144 FPS glassmorphic cyberpunk SRE dashboard layout with Raft cluster topology mesh and real-time telemetry graphs.
-
-Professional schematic layout, clean dark UI presentation, octane render style, isometric perspective, 8k resolution, crisp typography, clean isometric grid lines, visual tech stack logos, dark mode UI backdrop --ar 16:9 --style raw --v 6.0
-```
+The system combines **CockroachDB Serverless** dual memory storage (Row-Level TTL & pgvector 1536d cosine similarity search), **Amazon Bedrock** (Anthropic Claude 3.5 Sonnet), the **CockroachDB Managed Model Context Protocol (MCP)** server, and a **Vite/React glassmorphic command center**.
 
 ---
 
-## 📊 2. GitHub-Flavored Mermaid.js Architecture Diagram Code
-
-Copy and paste the following Mermaid code block into any Markdown viewer, GitHub README, or Draw.io to render an interactive vector architecture diagram:
+## 📊 2. High-Level System Architecture Diagram (Mermaid.js)
 
 ```mermaid
 graph TD
@@ -79,9 +60,7 @@ graph TD
 
 ---
 
-## 🏗️ 3. PlantUML / C4 Container Diagram Prompt
-
-For enterprise architecture documentation tools (e.g., PlantUML, Structurizr, Luciddchart), use the C4 Model specification below:
+## 🏗️ 3. C4 Container Architecture Diagram (PlantUML)
 
 ```plantuml
 @startuml SentinelAgent_C4_Architecture
@@ -113,18 +92,39 @@ Rel(mcp_server, cockroach_db, "Terminates idle sessions upon voice approval", "P
 
 ---
 
-## 📝 4. Draw.io / Excalidraw Prompt & Structure Checklist
+## 🔄 4. Detailed Component Data Flow Specifications
 
-If building a diagram manually in **Draw.io**, **Excalidraw**, or **Figma**:
+### 1. Telemetry Ingestion Layer
+- **Protocol**: Asynchronous WebSockets (`/ws/alert`) over FastAPI.
+- **Payload Handling**: Ingests JSON alert payloads containing service labels, error codes, and telemetry metrics (e.g. `DB Connection Pool Exhausted`).
 
-- [x] **Grid Alignment**: 3-column layout (Left: Ingestion & Telemetry, Middle: CockroachDB Dual Memory & AWS Bedrock, Right: Managed MCP Governance & React Dashboard).
-- [x] **Color Tokens**:
-  - **Background**: `#030712` (Slate 950 Dark)
-  - **Database & Vectors**: `#06b6d4` (Cyan) & `#10b981` (Emerald)
-  - **AI Reasoning**: `#8b5cf6` (Purple) & `#ec4899` (Pink)
-  - **MCP Security Gate**: `#f59e0b` (Amber Glowing Shield)
-  - **Remediation & S3**: `#f97316` (Orange)
-- [x] **Data Flow Connectors**:
-  - Solid arrows for synchronous DB reads & WebSocket events.
-  - Dashed arrows for async S3 presigned URL downloads and post-mortem persistence.
-  - Flashing Amber gate for `PENDING_WRITE` governance pauses.
+### 2. CockroachDB Dual Memory Core
+- **Ephemeral Storage**: Logs incoming incidents into `active_incidents` table configured with Row-Level TTL: `WITH (ttl_expire_after = '24 hours')`.
+- **Vector Memory**: Performs 1536-dimensional vector similarity search against historical incident runbooks in `incident_memory` using pgvector HNSW index: `CREATE INDEX ... USING hnsw (embedding vector_cosine_ops);`.
+
+### 3. Amazon Bedrock AI Reasoning Engine
+- **SDK**: `boto3.client('bedrock-runtime')`.
+- **Model**: `anthropic.claude-3-5-sonnet-20240620-v1:0`.
+- **Reasoning Loop**: Sequential 3-phase thought process (`RECEIVE_TELEMETRY` $\rightarrow$ `VECTOR_SEARCH` $\rightarrow$ `DIAGNOSE` / `PROPOSE_FIX`).
+
+### 4. Managed MCP & Voice Governance Gate
+- **State Enforcement**: Managed MCP server halts destructive actions by transitioning to a strict `PENDING_WRITE` execution pause state.
+- **Voice Consent**: Accepts human voice authorization via Web Speech API (`"Action Approved"`) or manual SRE click to unblock remediation.
+
+### 5. Automated Remediation & S3 Archival
+- **Cluster Fix**: Cancels stale idle connections (`PG_CANCEL_BACKEND`) and scales AWS EC2 cluster nodes.
+- **S3 Archival**: Prompts Claude 3.5 Sonnet to format an Incident Post-Mortem, uploads to S3 bucket (`sentinel-agent-postmortems`), and generates a 1-hour presigned URL.
+- **Memory Upsert**: Writes the verified resolution embedding back into CockroachDB `incident_memory` for future zero-shot vector recall.
+
+---
+
+## 🧰 5. Technology Stack Matrix
+
+| Component Layer | Primary Technology | Configuration / Schema Specification |
+| --- | --- | --- |
+| **Distributed Database** | CockroachDB Serverless | `VECTOR(1536)`, `vector_cosine_ops`, `ttl_expire_after = '24 hours'` |
+| **AI LLM Engine** | Amazon Bedrock | `anthropic.claude-3-5-sonnet-20240620-v1:0` via `boto3` |
+| **DB Protocol Governance** | Managed MCP Server | Enforces `PENDING_WRITE` state pause prior to execution |
+| **Post-Mortem Archival** | Amazon S3 | Markdown storage with `generate_presigned_url(ExpiresIn=3600)` |
+| **Backend Framework** | FastAPI & WebSockets | Asynchronous Python 3.11 streaming backend |
+| **SRE Command Center** | React 19, Vite, Tailwind | Glassmorphic dark UI, 144 FPS telemetry, ClusterTopology node visualizer |
