@@ -8,6 +8,7 @@ import { VoiceApprovalButton } from './components/VoiceApprovalButton';
 import { VectorSimilarityGraph } from './components/VectorSimilarityGraph';
 import { AgentMemoryPanel } from './components/AgentMemoryPanel';
 import { ClusterTopology, ClusterState } from './components/ClusterTopology';
+import { Footer } from './components/Footer';
 import { useAudio } from './hooks/useAudio';
 
 type IncidentPhase =
@@ -637,6 +638,9 @@ export default function App() {
           />
         </div>
       </main>
+
+      {/* Cyberpunk Footer Component */}
+      <Footer />
 
       {/* DEMO CONTROL PANEL TOOLBAR (Fixed Sleek Admin Toolbar for 3-Minute Hackathon Demo Video) */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 border-t border-cyan-500/40 backdrop-blur-xl px-3 sm:px-6 py-2 shadow-2xl flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
