@@ -211,13 +211,18 @@ python sentinel-agent-main/simulate_demo.py
 
 ---
 
-## 👨‍💻 Creator & Maintainer
+## 👨‍💻 Creators & Maintainers
 
-Developed with ❤️ for the **CockroachDB × AWS Hackathon** by:
+Developed with ❤️ for the **CockroachDB × AWS Hackathon** by the **Sentinel SRE Team**:
 
 * **Saaketh Kazipeta**
-* **GitHub:** [@SAAKETH12345](https://github.com/SAAKETH12345)
-* **Role:** Lead Architect & Developer
+  * **Role:** Lead Architect & Developer
+  * **GitHub:** [@SAAKETH12345](https://github.com/SAAKETH12345)
+
+* **Lalitha Subramanyam**
+  * **Role:** Co-Architect & SRE Integration Lead
+
+*This project was built as a joint collaboration, blending AI architecture and full-stack development to push the limits of autonomous cloud infrastructure.*
 
 ---
 
