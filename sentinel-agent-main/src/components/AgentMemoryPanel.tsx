@@ -11,8 +11,10 @@ export interface PastIncident {
 
 export type McpPermissionStatus = 
   | '[READ_ONLY | GRANTED]' 
+  | '[WRITE_CONSENT | PENDING_WRITE]'
   | '[WRITE_CONSENT | AWAITING_APPROVAL]' 
   | 'READ_ONLY | GRANTED'
+  | 'WRITE_CONSENT | PENDING_WRITE'
   | 'WRITE_CONSENT | AWAITING_APPROVAL'
   | string;
 
@@ -73,14 +75,14 @@ const DEFAULT_MCP_AUDIT_LOGS: McpAuditLogAction[] = [
     id: 'mcp-103',
     timestamp: '18:57:40 UTC',
     toolName: 'sql_terminate_idle_connections',
-    status: '[WRITE_CONSENT | AWAITING_APPROVAL]',
+    status: '[WRITE_CONSENT | PENDING_WRITE]',
     details: 'Requires SRE consent to execute PG_CANCEL_BACKEND.'
   },
   {
     id: 'mcp-104',
     timestamp: '18:58:11 UTC',
     toolName: 'pg_pool_resize_max_connections',
-    status: '[WRITE_CONSENT | AWAITING_APPROVAL]',
+    status: '[WRITE_CONSENT | PENDING_WRITE]',
     details: 'Pending human voice approval or token verification.'
   }
 ];

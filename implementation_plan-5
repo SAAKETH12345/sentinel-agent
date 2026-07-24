@@ -1,0 +1,35 @@
+# Implementation Plan: CockroachDB ClusterTopology Component
+
+Build a dark cyberpunk styled React component (`ClusterTopology.tsx`) using Framer Motion for SVG animations and Tailwind CSS to visualize a 3-node CockroachDB cluster with dynamic states (`HEALTHY`, `INCIDENT`, `RECOVERING`).
+
+## User Review Required
+
+> [!NOTE]
+> The component will use an interactive SVG canvas powered by Framer Motion for smooth node pulsing, inter-node packet flow, glowing connecting lines, and animated packet delivery into Node 2 during state recovery.
+
+## Proposed Changes
+
+### Dashboard Components
+
+#### [NEW] [ClusterTopology.tsx](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/src/components/ClusterTopology.tsx)
+
+- Create `ClusterTopology.tsx` in `src/components/`.
+- **Props**: `clusterState` (`'HEALTHY' | 'INCIDENT' | 'RECOVERING'`), `className`, `onNodeClick`.
+- **Requirements Implementation**:
+  1. **3 Circular Nodes & Inter-Node Mesh Lines**: SVG visualization connecting Node 1 (Primary), Node 2 (Auth Session DB), Node 3 (Replica) with glowing inter-node mesh lines.
+  2. **`HEALTHY` State**: Soft cyan glow pulse across all 3 nodes and inter-node mesh connections.
+  3. **`INCIDENT` State**: Node 2 aggressively flashes red/amber (`animate={{ scale: [1, 1.1, 1], opacity: [1, 0.4, 1] }}`) with an illuminated tooltip badge reading `"Connection Pool Exhausted"`.
+  4. **`RECOVERING` State**: Framer Motion data packet traveling from Agent UI origin point `(x: 60, y: 60)` directly into Node 2 `(480, 260)`, transitioning Node 2 back to cyan glow.
+- Export `ClusterTopology` component and `ClusterState` type.
+
+#### [MODIFY] [App.tsx](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/src/App.tsx)
+
+- Import and integrate `ClusterTopology` into the CockroachDB Vector Index tab or SRE dashboard view in `App.tsx`, binding `clusterState` dynamically to the current incident phase.
+
+## Verification Plan
+
+### Automated Tests
+- Run `cmd.exe /c "npm run lint"` (`tsc --noEmit`) to verify zero TypeScript errors.
+
+### Manual Verification
+- Verify node rendering, Framer Motion animations for healthy pulsing, incident red/amber flashing with tooltip, and packet motion delivery during recovery.

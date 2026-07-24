@@ -196,7 +196,8 @@ async def alert_websocket_endpoint(websocket: WebSocket):
                     {
                         "timestamp": "18:57:40 UTC",
                         "toolName": "sql_terminate_idle_connections",
-                        "status": "[WRITE_CONSENT | AWAITING_APPROVAL]",
+                        "status": "[WRITE_CONSENT | PENDING_WRITE]",
+                        "mcp_state": "PENDING_WRITE",
                         "details": "Requires human SRE voice consent to execute PG_CANCEL_BACKEND."
                     }
                 ]
@@ -212,6 +213,7 @@ async def alert_websocket_endpoint(websocket: WebSocket):
             # Step 3: Propose Fix (Scale AWS nodes & Clear DB sessions)
             proposal_event = {
                 "phase": "AWAITING_APPROVAL",
+                "mcp_state": "PENDING_WRITE",
                 "reasoning": "Diagnostic confirms connection pool exhaustion & CPU overload. Remediation: Scale AWS EC2 cluster nodes & clear idle CockroachDB sessions.",
                 "action": "HALT: Awaiting human governance voice approval for 'aws auto-scaling scale-up --cluster auth-cluster & cockroach sql --execute=\"CANCEL SESSION <idle_ids>\"'"
             }

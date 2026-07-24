@@ -1,0 +1,51 @@
+# Implementation Plan: CockroachDB Dual Memory Backend Support
+
+Update FastAPI `database.py` and `main.py` using `psycopg2` to implement CockroachDB Dual Memory patterns: Row-Level TTL for active ephemeral incidents and pgvector cosine similarity search (`vector_cosine_ops`) for incident memory.
+
+## User Review Required
+
+> [!NOTE]
+> The backend database module will use `psycopg2` and CockroachDB's `EXPIRE AT now() + INTERVAL '24 hours'` Row-Level TTL syntax for active incidents, while utilizing `vector_cosine_ops` similarity queries against `incident_memory`. In-memory fallbacks ensure smooth execution even if a live CockroachDB cluster is offline.
+
+## Proposed Changes
+
+### Backend Database & WebSocket API
+
+#### [MODIFY] [database.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/database.py)
+
+1. **`log_ephemeral_incident(title: str, summary: str, details: str = "") -> dict`**:
+   - Executes SQL query inserting into `active_incidents` with CockroachDB Row-Level TTL:
+     ```sql
+     INSERT INTO active_incidents (title, summary, details)
+     VALUES (%s, %s, %s)
+     EXPIRE AT now() + INTERVAL '24 hours'
+     RETURNING id;
+     ```
+   - Includes in-memory fallback storage if DB pool is offline.
+
+2. **`search_past_incidents(embedding: list[float], top_k: int = 3) -> list[dict]`**:
+   - Queries `incident_memory` table using `vector_cosine_ops` (or cosine distance calculation `<=>`):
+     ```sql
+     SELECT id, title, summary, 1 - (embedding <=> %s::vector) AS similarity
+     FROM incident_memory
+     ORDER BY embedding <=> %s::vector
+     LIMIT %s;
+     ```
+   - Returns top 3 matches along with calculated similarity distance.
+
+3. **`_setup_schema()`**:
+   - Creates `active_incidents` (with TTL) and `incident_memory` tables with vector extension setup.
+   - Seeds default past incidents into `incident_memory`.
+
+#### [MODIFY] [main.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/main.py)
+
+- Update `/ws/alert` WebSocket endpoint to call `search_past_incidents()` and stream `pastIncidents` (with similarity distances) and `mcpAuditLogs` payloads back to frontend clients so `AgentMemoryPanel` renders them dynamically in real time.
+
+## Verification Plan
+
+### Automated Tests
+- Run backend verification test using Python `pytest` or running `python test_backend.py` / `python database.py` check.
+
+### Manual Verification
+- Verify `log_ephemeral_incident()` TTL query execution and `search_past_incidents()` vector similarity results.
+- Verify WebSocket JSON stream delivers `pastIncidents` with calculated similarity scores.

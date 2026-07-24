@@ -109,6 +109,7 @@ async def stream_claude_thought_process(alert_text: str, retrieved_runbooks: lis
     recommended_solution = matched_runbook['solution'] if matched_runbook else "cockroach sql --execute=\"CANCEL SESSION <idle_ids>\""
     yield {
         "phase": "DIAGNOSE",
+        "mcp_state": "PENDING_WRITE",
         "reasoning": f"Vector match indicates connection leaks. Verified active DB connections. Solution proposed: {recommended_solution}",
         "action": f"HALT: Awaiting human approval for '{recommended_solution}'"
     }

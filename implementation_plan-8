@@ -1,0 +1,41 @@
+# Implementation Plan: AWS S3 Incident Post-Mortem Generation
+
+Integrate AWS S3 and Amazon Bedrock Claude 3.5 Sonnet into the FastAPI backend using `boto3` to generate, upload, and serve pre-signed download URLs for Incident Post-Mortem Markdown reports upon incident resolution.
+
+## User Review Required
+
+> [!NOTE]
+> The backend will use `boto3` to generate Post-Mortem Markdown reports via Claude 3.5 Sonnet, upload them to an AWS S3 bucket (`s3.put_object`), generate 1-hour pre-signed S3 download URLs (`s3.generate_presigned_url`), and stream the URL via WebSocket to render a glowing download button on the frontend.
+
+## Proposed Changes
+
+### Backend (AWS S3 & Bedrock Integration)
+
+#### [MODIFY] [config.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/config.py)
+- Add `S3_BUCKET_NAME` setting (default: `"sentinel-agent-postmortems"`).
+
+#### [NEW] [s3_client.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/s3_client.py)
+- Implement `generate_post_mortem(incident_data: dict) -> tuple[str, str]`:
+  1. Invokes Claude 3.5 Sonnet via Bedrock runtime or structured template to synthesize outage summary, root cause, and applied remediation into Markdown.
+  2. Uploads Markdown report to S3 bucket via `boto3.client('s3').put_object()`.
+  3. Generates 3600s pre-signed download URL via `boto3.client('s3').generate_presigned_url('get_object')`.
+  4. Includes fallback mock pre-signed URL generator if S3 credentials are in local demo mode.
+
+#### [MODIFY] [main.py](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/backend/main.py)
+- Update `/ws/alert` WebSocket resolution handler to call `generate_post_mortem()` upon incident resolution (`RESOLVE_INCIDENT`) and stream `postMortemUrl` to connected frontend clients.
+
+### Frontend Dashboard
+
+#### [MODIFY] [App.tsx](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/src/App.tsx)
+- Store `postMortemUrl` state from WebSocket events.
+- Render a glowing **"📥 Download S3 Post-Mortem (.md)"** button in the notification banner and Voice Approval component upon incident resolution.
+
+## Verification Plan
+
+### Automated Tests
+- Run `python -m py_compile backend/s3_client.py backend/main.py backend/config.py` to verify zero Python errors.
+- Run `cmd.exe /c "npm run lint"` (`tsc --noEmit`) to verify zero TypeScript errors.
+
+### Manual Verification
+- Test incident resolution trigger (Voice approval or button) and verify `postMortemUrl` is generated and streamed.
+- Verify clicking the glowing download button opens or downloads the S3 Post-Mortem Markdown document.

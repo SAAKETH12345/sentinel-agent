@@ -1,0 +1,40 @@
+# Implementation Plan: Demo Control Panel & Dashboard Layout Update
+
+Add a sleek, fixed-bottom Demo Control Panel admin toolbar designed for a 3-minute hackathon demo video, and refine the right split-pane layout to showcase `ClusterTopology` and `AgentMemoryPanel`.
+
+## User Review Required
+
+> [!NOTE]
+> The Demo Control Panel will sit as a sleek, semi-transparent dark cyberpunk admin toolbar at the bottom of the screen (`fixed bottom-0`). It features trigger controls for DB Pool Exhaustion, Slow Queries, and Agent Crash & Recovery.
+
+## Proposed Changes
+
+### Dashboard Layout & Admin Toolbar
+
+#### [MODIFY] [App.tsx](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/src/App.tsx)
+
+1. **Demo Control Panel Toolbar (Bottom Bar)**:
+   - Styled with dark cyberpunk glassmorphism (`fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 border-t border-cyan-500/40 backdrop-blur-xl px-4 py-2 shadow-2xl`).
+   - Includes 3 styled buttons:
+     - **Button 1**: `"⚡ Trigger Scenario: DB Pool Exhaustion"`
+       - Simulates AWS CloudWatch payload arriving, setting `ClusterTopology` to `'INCIDENT'` state and starting the agent terminal triage sequence (`RECEIVE_TELEMETRY` -> `VECTOR_SEARCH` -> `DIAGNOSE` -> `PROPOSE_FIX` -> `AWAITING_APPROVAL`).
+     - **Button 2**: `"🐢 Trigger Scenario: Slow Queries"`
+       - Triggers slow query telemetry payload and initiates diagnostic triage.
+     - **Button 3**: `"🔄 Simulate Agent Crash & Recovery"`
+       - Simulates process restart, re-synchronizes state, and transitions `ClusterTopology` through `'RECOVERING'` back to `'HEALTHY'`.
+2. **Right-Pane Dashboard Layout**:
+   - Organize the right column (`lg:col-span-7`) into clean, responsive sections:
+     - **Cluster Topology & Vector Similarity Graph**: Live mesh visualization.
+     - **Agent Terminal**: Real-time triage log sequence.
+     - **Agent Memory Panel**: pgvector similarity recall progress bars and color-coded MCP audit log badges.
+
+## Verification Plan
+
+### Automated Tests
+- Run `cmd.exe /c "npm run lint"` (`tsc --noEmit`) to ensure clean compilation with zero TypeScript errors.
+
+### Manual Verification
+- Test Button 1 ("DB Pool Exhaustion"): Verify `ClusterTopology` transitions to `'INCIDENT'` red/amber flashing with tooltip, and terminal begins triage.
+- Test Button 2 ("Slow Queries"): Verify slow query payload dispatch.
+- Test Button 3 ("Agent Crash & Recovery"): Verify crash simulation, state re-sync, and recovery transition back to `'HEALTHY'`.
+- Verify responsive layout of `AgentMemoryPanel` and `ClusterTopology` on the right side of the split-pane dashboard.

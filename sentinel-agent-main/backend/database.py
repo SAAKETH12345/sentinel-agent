@@ -50,7 +50,7 @@ def _setup_schema():
             except Exception:
                 conn.rollback()
 
-            # 1. Ephemeral Active Incidents Table
+            # 1. Ephemeral Active Incidents Table (CockroachDB Row-Level TTL)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS active_incidents (
                     id STRING PRIMARY KEY DEFAULT gen_random_uuid()::STRING,
@@ -58,17 +58,17 @@ def _setup_schema():
                     summary STRING,
                     details STRING,
                     created_at TIMESTAMPTZ DEFAULT now()
-                );
+                ) WITH (ttl_expire_after = '24 hours');
             """)
 
-            # 2. Vector Incident Memory Table
+            # 2. Vector Incident Memory Table (CockroachDB pgvector)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS incident_memory (
                     id STRING PRIMARY KEY DEFAULT gen_random_uuid()::STRING,
                     title STRING NOT NULL,
                     summary STRING NOT NULL,
                     solution STRING,
-                    embedding FLOAT8[] NOT NULL,
+                    embedding VECTOR(1536) NOT NULL,
                     created_at TIMESTAMPTZ DEFAULT now()
                 );
             """)

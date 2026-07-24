@@ -1,0 +1,38 @@
+# Implementation Plan: SRE Dashboard AgentMemoryPanel Component
+
+Build a dark cyberpunk styled React/Next.js component (`AgentMemoryPanel.tsx`) for the SRE dashboard featuring vector memory recall visualizations (pgvector) and an audit log for managed Model Context Protocol (MCP) actions with status badges.
+
+## User Review Required
+
+> [!NOTE]
+> The component will be built with React, Tailwind CSS, and Lucide React icons matching the dark cyberpunk design aesthetic (`glass-panel`, neon glows, scanlines, hardware acceleration).
+> Standard default mock data will be included as fallbacks if no props are passed, allowing standalone preview and testing.
+
+## Proposed Changes
+
+### Dashboard Components
+
+#### [NEW] [AgentMemoryPanel.tsx](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/src/components/AgentMemoryPanel.tsx)
+
+- Create `AgentMemoryPanel.tsx` in `src/components/`.
+- **Top Section**: "Vector Memory Recall (pgvector)"
+  - Accepts `pastIncidents` prop (`Array<{ title: string; similarity: number; date?: string; summary?: string }>`).
+  - Displays incident title, similarity percentage (e.g. `94%`), and styled horizontal progress bar with cyber gradient (`from-cyan-500 to-emerald-400`).
+- **Bottom Section**: "Managed MCP Audit Log"
+  - Accepts `mcpAuditLogs` prop (`Array<{ timestamp: string; toolName: string; status: '[READ_ONLY | GRANTED]' | '[WRITE_CONSENT | AWAITING_APPROVAL]' | string; description?: string }>`).
+  - Color-coded badges:
+    - **Green Badge**: `[READ_ONLY | GRANTED]` styled with emerald neon glow.
+    - **Flashing Amber Badge**: `[WRITE_CONSENT | AWAITING_APPROVAL]` styled with pulsing amber neon glow (`animate-pulse`).
+- Export named component `AgentMemoryPanel` and types `PastIncident`, `McpAuditLogAction`, `AgentMemoryPanelProps`.
+
+#### [MODIFY] [App.tsx](file:///c:/Users/saake/Downloads/sentinel-agent-main/sentinel-agent-main/src/App.tsx)
+
+- Import `AgentMemoryPanel` in `App.tsx` and integrate it into the dashboard grid layout.
+
+## Verification Plan
+
+### Automated Tests
+- Run `npm run lint` (`tsc --noEmit`) to verify TypeScript type compliance with zero errors.
+
+### Manual Verification
+- Check component rendering, progress bar calculations, badge flashing animation, dark cyberpunk styling, and responsive layout.
