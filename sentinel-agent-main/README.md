@@ -28,34 +28,48 @@ Once resolved, SentinelAgent automatically writes new post-mortem embeddings bac
 
 ## 🏗️ System Architecture
 
+```mermaid
+graph TD
+    classDef telemetry fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#fff
+    classDef backend fill:#0f172a,stroke:#06b6d4,stroke-width:2px,color:#fff
+    classDef cockroach fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
+    classDef aws fill:#451a03,stroke:#f97316,stroke-width:2px,color:#fff
+    classDef mcp fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fff
+    classDef ui fill:#022c22,stroke:#14b8a6,stroke-width:2px,color:#fff
+
+    subgraph TELEMETRY["1. Telemetry Ingestion Layer"]
+        CW["AWS CloudWatch / App Alerts"]:::telemetry -->|JSON Alert Payload| WS["FastAPI WebSocket Server<br/>(/ws/alert)"]:::backend
+    end
+
+    subgraph DUAL_MEMORY["2. CockroachDB Dual Memory Core"]
+        WS -->|Log Active Incident| TTL["CockroachDB Row-Level TTL<br/>(active_incidents | expire 24h)"]:::cockroach
+        WS -->|Query Embeddings| VEC["CockroachDB pgvector Store<br/>(VECTOR 1536d | vector_cosine_ops)"]:::cockroach
+    end
+
+    subgraph REASONING["3. AWS Bedrock AI Engine"]
+        WS -->|Invoke boto3 SDK| BEDROCK["Amazon Bedrock<br/>(anthropic.claude-3-5-sonnet-20240620-v1:0)"]:::aws
+        VEC -->|Runbook Context| BEDROCK
+        BEDROCK -->|Streaming Reasoning| WS
+    end
+
+    subgraph GOVERNANCE["4. Managed MCP & Voice Governance"]
+        BEDROCK -->|Propose Remediation| MCP["CockroachDB Managed MCP Server<br/>(Strict PENDING_WRITE Pause)"]:::mcp
+        MCP -->|Await Consent| VOICE["Human SRE Voice Governance<br/>(Web Speech API: 'Action Approved')"]:::mcp
+    end
+
+    subgraph REMEDIATION["5. Remediation & S3 Post-Mortem"]
+        VOICE -->|Execute Fix| FIX["Scale AWS Nodes & Clear Idle Sessions<br/>(PG_CANCEL_BACKEND)"]:::aws
+        FIX -->|Generate RCA| S3["Amazon S3 Storage<br/>(Markdown Post-Mortem & Presigned URL)"]:::aws
+        FIX -->|Persist Solution| VEC
+    end
+
+    subgraph DASHBOARD["6. Cyberpunk SRE Command Center"]
+        WS <-->|Real-time Telemetry| FRONTEND["Vite + React 19 UI<br/>(ClusterTopology, Recharts, MemoryPanel)"]:::ui
+        S3 -->|Presigned Download URL| FRONTEND
+    end
 ```
-                       ┌──────────────────────────────────┐
-                       │   Simulated Outage / Telemetry   │
-                       └────────────────┬─────────────────┘
-                                        │
-                                        ▼
-                       ┌──────────────────────────────────┐
-                       │   FastAPI WebSocket / REST API   │
-                       └────────────────┬─────────────────┘
-                                        │
-        ┌───────────────────────────────┼───────────────────────────────┐
-        ▼                               ▼                               ▼
-┌──────────────────────┐    ┌───────────────────────┐    ┌──────────────────────┐
-│  Amazon Bedrock      │    │  CockroachDB Vector   │    │  CockroachDB MCP     │
-│  (Claude 3.5 Sonnet) │    │  Index (pgvector)     │    │  Server & ccloud CLI │
-│  [Reasoning Engine]  │    │  [Long-Term Memory]   │    │  [Live Inspection]   │
-└──────────────────────┘    └───────────────────────┘    └──────────────────────┘
-        │                               │                               │
-        └───────────────────────────────┼───────────────────────────────┘
-                                        │
-                                        ▼
-                       ┌──────────────────────────────────┐
-                       │  Vite React Command Center (UI)  │
-                       │  • 144 FPS Thought Stream        │
-                       │  • Recharts Telemetry            │
-                       │  • React Flow Memory Visualizer  │
-                       └──────────────────────────────────┘
-```
+
+> 📖 **Full AI Architecture Diagram Prompts**: View [ARCHITECTURE_PROMPT.md](./ARCHITECTURE_PROMPT.md) for Midjourney v6, DALL-E 3, PlantUML, and Draw.io visual diagram specifications.
 
 ---
 
